@@ -85,8 +85,8 @@ def process_data(
         help="处理模式 [single: 没有标签文件, nolabel: 空标签文件, all: 同时两种]",
     ),
 ):
-    img_dir = Path(image_path).resolve()
-    label_dir = Path(label_path).resolve() if label_path else img_dir
+    img_dir = image_path.resolve()
+    label_dir = label_path.resolve() if label_path else img_dir
 
     if not img_dir.is_dir():
         raise ValueError(f"图片路径不存在或不是目录: {img_dir}")

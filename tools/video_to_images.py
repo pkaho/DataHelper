@@ -31,8 +31,7 @@ def extract_frames(
     )
 
     try:
-        input_path = Path(path)
-        if not input_path.is_file():
+        if not Path(path).is_file():
             raise FileNotFoundError(f"输入的视频文件 {path} 不存在。")
 
         ffmpeg_command = [

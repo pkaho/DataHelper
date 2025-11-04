@@ -36,7 +36,7 @@ def split_dataset(
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
     ratio: float = typer.Option(0.1, "--ratio", "-r", help="分割比例(val集占比)"),
 ):
-    parent_dir = Path(image_path).resolve().parent
+    parent_dir = image_path.resolve().parent
     output_path = create_output_directory(output_path, parent_dir, "splitdata")
     label_path = label_path or image_path
 
@@ -51,7 +51,7 @@ def split_dataset(
     val_label_dir.mkdir(parents=True, exist_ok=True)
 
     image_list = [
-        file for file in Path(image_path).iterdir() if file.suffix in IMAGE_FORMATS
+        file for file in image_path.iterdir() if file.suffix in IMAGE_FORMATS
     ]
     random.shuffle(image_list)
 
@@ -61,13 +61,13 @@ def split_dataset(
     val_files = image_list[:split_index]
 
     for tr_image_file in track(train_files, description="SplitTrain..."):
-        tr_label_file = Path(label_path) / Path(tr_image_file.name).stem
+        tr_label_file = label_path / Path(tr_image_file.name).stem
         tr_label_file = str(tr_label_file) + ".txt"
         shutil.copy(tr_image_file, train_image_dir)
         shutil.copy(tr_label_file, train_label_dir)
 
     for val_image_file in track(val_files, description="SplitVal..."):
-        val_label_file = Path(label_path) / Path(val_image_file.name).stem
+        val_label_file = label_path / Path(val_image_file.name).stem
         val_label_file = str(val_label_file) + ".txt"
         shutil.copy(val_image_file, val_image_dir)
         shutil.copy(val_label_file, val_label_dir)

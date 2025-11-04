@@ -33,9 +33,8 @@ def generate_empty_file(
         LabelType.txt, help="要生成的标签文件类型 [txt, json]"
     ),
 ):
-    image_list = Path(path)
     for img_file in track(
-        image_list.iterdir(), description="Generating empty label files..."
+        path.iterdir(), description="Generating empty label files..."
     ):
         if img_file.suffix.lower() not in IMAGE_EXTENSIONS:
             continue

@@ -64,7 +64,6 @@ def modify_label(
     new_str: str = typer.Option(None, "--new_str", "-n", help="要替换的新标签名"),
     cls_path: str = typer.Option(None, "--cls_path", "-c", help="classes.txt"),
 ):
-    path = Path(path)
     if not path.exists():
         return f"{path} not found!"
 

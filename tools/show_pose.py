@@ -100,7 +100,7 @@ def show(
 ):
     label_path = image_path if label_path is None else label_path
     images = sorted(
-        [f for f in Path(image_path).iterdir() if f.suffix.lower() in IMAGE_FORMAT]
+        [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
     )
     if not images:
         print("No images found in the specified directory.")

@@ -44,12 +44,12 @@ def convert_labelme_to_yolo(json_path, txt_path, classes, img_width, img_height)
 
 @cli.command()
 def process_labelme_to_yolo_det(
-    image_path: str = typer.Argument(..., help="图片目录"),
+    image_path: Path = typer.Argument(..., help="图片目录"),
     class_path: str = typer.Argument(..., help="classes.txt"),
-    label_path: str = typer.Option(None, "--label_path", "-l", help="标签目录"),
+    label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
-    images = [f for f in Path(image_path).iterdir() if f.suffix.lower() in IMAGE_FORMAT]
+    images = [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
     label_path = label_path or image_path
     output_path = create_output_directory(output_path, image_path, "json2yolo_det")
     classes = []
@@ -60,7 +60,7 @@ def process_labelme_to_yolo_det(
     for img_file in track(images, description="Converting to YOLO..."):
         img = Image.open(img_file)
         base_name = img_file.stem
-        json_file = Path(label_path) / f"{base_name}.json"
+        json_file = label_path / f"{base_name}.json"
         txt_file = output_path / f"{base_name}.txt"
 
         if json_file.exists():
