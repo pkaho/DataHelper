@@ -1,0 +1,10 @@
+// 参考: https://github.com/microsoft/pyright/blob/main/docs/configuration.md
+{
+    "typeCheckingMode": "basic",
+    "reportOptionalSubscript": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalCall": "none",
+    "reportAssignmentType": "warning",
+    "venvPath": "C:/Users/panjh/Desktop/DataHelper/",
+    "venv": ".venv"
+}
