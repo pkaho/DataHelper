@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import typer
+from rich.progress import track
 
 cli = typer.Typer(
     help="根据指定规则筛选 YOLO 或 LabelMe 标签文件，并移动/复制对应图像和标签。"
@@ -173,7 +174,7 @@ def main(
 
     matched_count = 0
 
-    for label_path in label_files:
+    for label_path in track(label_files, description="Searching..."):
         fmt = detect_label_format(label_path)
         if not fmt:
             continue
