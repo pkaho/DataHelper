@@ -1,11 +1,11 @@
 import subprocess
 from pathlib import Path
 
-import cv2
 import typer
 
 cli = typer.Typer()
 
+VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg', '.ts'}
 
 def create_output_directory(output_dir, source_path, folder_name):
     if output_dir is None:
@@ -15,48 +15,71 @@ def create_output_directory(output_dir, source_path, folder_name):
     return output_dir
 
 
+def get_video_files_iterator(path: str):
+    """优化的迭代器版本"""
+    input_path = Path(path)
+
+    if input_path.is_file():
+        if input_path.suffix.lower() in VIDEO_EXTENSIONS:
+            yield input_path
+        else:
+            print(f"文件 {path} 不是支持的视频格式")
+        return
+
+    # 对于目录，使用迭代器避免一次性加载所有文件
+    for file_path in sorted(input_path.iterdir()):  # 保持排序
+        if file_path.is_file() and file_path.suffix.lower() in VIDEO_EXTENSIONS:
+            yield file_path
+
 @cli.command()
 def extract_frames(
-    path: str = typer.Argument(..., help="视频路径"),
+    path: str = typer.Argument(..., help="视频文件路径或包含视频文件的文件夹路径"),
     gap: int = typer.Option(50, "-gap", "-g", help="间隔多少帧保存一次"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ) -> None:
-    cap = cv2.VideoCapture(path)
-    fps = cap.get(7)
-    name_length = len(str(int(fps)))
+    video_files = get_video_files_iterator(path)
 
-    basename = Path(path).name
-    output_path = create_output_directory(
-        output_path, path, f"video2img_{gap}_{basename}"
-    )
+    processed_count = 0
+    found_files = False
 
-    try:
-        if not Path(path).is_file():
-            raise FileNotFoundError(f"输入的视频文件 {path} 不存在。")
+    for video_file in video_files:
+        if not found_files:
+            found_files = True
+
+        processed_count += 1
+        print(f"\n正在处理第 {processed_count} 个视频文件: {video_file.name}")
+
+        video_output_path = create_output_directory(
+            output_path, str(video_file), f"video2img_{gap}_{video_file.name}"
+        )
+
+        output_pattern = f"{str(video_output_path)}/{video_file.stem}_%05d.jpg"
 
         ffmpeg_command = [
             "ffmpeg",
             "-i",
-            path,
+            str(video_file),  # 确保路径是字符串
             "-vf",
             f"select='not(mod(n,{gap}))'",
             "-vsync",
             "vfr",
-            f"{str(output_path)}/%{name_length}d.jpg",
+            output_pattern,
         ]
 
-        print("执行的 FFmpeg 命令：", " ".join(ffmpeg_command))
+        try:
+            subprocess.run(ffmpeg_command, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"处理视频 {video_file.name} 时出错: {e}")
+        except FileNotFoundError:
+            print("错误: 未找到 ffmpeg，请确保已安装并添加到系统路径")
+            return
 
-        subprocess.run(ffmpeg_command, check=True)
-    except FileNotFoundError as file_err:
-        print(f"文件错误：{file_err}")
-    except subprocess.CalledProcessError as process_err:
-        print(f"执行 FFmpeg 命令时出错：{process_err}")
-    except Exception as general_err:
-        print(f"发生未知错误：{general_err}")
+        print(f"视频 {video_file.name} 处理完成！文件保存在 {video_output_path}")
 
-    typer.echo(f"Finished! file saved in {output_path}")
-
+    if processed_count > 0:
+        print(f"\n总共处理了 {processed_count} 个视频文件。")
+    elif not found_files:
+        print("\n没有找到任何视频文件进行处理。")
 
 if __name__ == "__main__":
     cli()
