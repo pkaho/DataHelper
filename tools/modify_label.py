@@ -64,6 +64,7 @@ def modify_label(
     new_str: str = typer.Option(None, "--new_str", "-n", help="要替换的新标签名"),
     cls_path: str = typer.Option(None, "--cls_path", "-c", help="classes.txt"),
 ):
+    #TODO: 后续删除 cls_path 参数, 直接对 yolo 格式的数字进行修改
     if not path.exists():
         return f"{path} not found!"
 
@@ -77,6 +78,8 @@ def modify_label(
 
     for label_file in track(path.iterdir(), description="Modify..."):
         if label_file.suffix == is_txt:
+            if label_file.stem == "classes":
+                continue
             if not all_cls:
                 raise ValueError("classes.txt is required!")
             modify_txt(label_file, old_str, new_str, all_cls)
