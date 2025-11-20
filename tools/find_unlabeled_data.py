@@ -131,7 +131,7 @@ def process_data(
             if output_paths["nolabel"]:
                 move_or_copy(img_file, output_paths["nolabel"], copy)
                 move_or_copy(label_file, output_paths["nolabel"], copy)
-                processed += 2
+                processed += 1
 
     # 清理空输出目录
     for out_dir in [output_paths["single"], output_paths["nolabel"]]:
@@ -139,7 +139,7 @@ def process_data(
             if not any(out_dir.iterdir()):
                 shutil.rmtree(out_dir)
 
-    typer.echo(f"处理完成: 共检查 {len(image_files)} 张图像, 操作 {processed} 个文件")
+    typer.echo(f"处理完成: 共检查 {len(image_files)} 张图像, 操作 {processed} 张图片")
 
 
 if __name__ == "__main__":
