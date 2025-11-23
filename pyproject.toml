@@ -41,7 +41,12 @@ explicit = true
 requires = ["uv_build"]
 build-backend = "uv_build"
 
+[dependency-groups]
+# 在 vscode 中使用 jupyter, 需要安装 ipykernel, uv add --dev ipykernel
+dev = [
+    "ipykernel>=7.1.0",
+]
+
 [tool.uv.build-backend]
 module-root = ""
 module-name = ["tools"]
-
