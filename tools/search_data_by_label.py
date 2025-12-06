@@ -164,6 +164,7 @@ def main(
     total_gte: Optional[int] = typer.Option(None, "--total-gte", help="总实例数 ≥ N"),
     total_lte: Optional[int] = typer.Option(None, "--total-lte", help="总实例数 ≤ N"),
 ):
+    #TODO: 规则需要调整
     input_path = input_path.resolve()
     output_path = create_output_directory(output_path, input_path, "search_data")
 
