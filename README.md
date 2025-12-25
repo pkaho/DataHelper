@@ -32,7 +32,7 @@
 
 ### 1. 安装依赖
 
-本使用 [`uv`](https://github.com/astral-sh/uv) 进行快速依赖管理，根据情况选择命令：
+使用 [`uv`](https://github.com/astral-sh/uv) 进行快速依赖管理，根据情况选择命令：
 
 ```bash
 uv sync --extra cu118
