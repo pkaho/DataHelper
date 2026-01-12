@@ -14,11 +14,17 @@ class LabelFormat(Enum):
     JSON = ".json"
 
 
-def modify_txt(file, old_str, new_str, all_cls):
+def modify_txt(file, old_str, new_str, all_cls=None):
     with open(file, "r") as bf:
         lines = [i.strip() for i in bf if i.strip()]
 
-    old_str_id = all_cls.index(old_str)
+    if old_str.isdigit():
+        old_str_id = int(old_str)
+    else:
+        if all_cls is None:
+            raise ValueError("classes.txt is required when using string labels!")
+        old_str_id = all_cls.index(old_str)
+
     new_lines = []
     for line in lines:
         label = int(line.split(" ")[0])
@@ -29,8 +35,16 @@ def modify_txt(file, old_str, new_str, all_cls):
         if new_str is None:  # 没有就跳过, 等效删除
             continue
         else:
-            new_str_id = str(all_cls.index(new_str))
-        new_line = re.sub(f"^{old_str_id}", new_str_id, line, flags=re.MULTILINE)
+            if new_str.isdigit():
+                new_str_id = new_str
+            else:
+                if all_cls is None:
+                    raise ValueError("classes.txt is required when using string labels!")
+                new_str_id = str(all_cls.index(new_str))
+
+        parts = line.split(" ")
+        parts[0] = new_str_id
+        new_line = " ".join(parts)
         new_lines.append(new_line)
 
     with open(file, "w") as f:
@@ -64,14 +78,13 @@ def modify_label(
     new_str: str = typer.Option(None, "--new_str", "-n", help="要替换的新标签名"),
     cls_path: str = typer.Option(None, "--cls_path", "-c", help="classes.txt"),
 ):
-    #TODO: 后续删除 cls_path 参数, 直接对 yolo 格式的数字进行修改
     if not path.exists():
         return f"{path} not found!"
 
     is_txt = LabelFormat.TXT.value
     is_json = LabelFormat.JSON.value
 
-    all_cls = []
+    all_cls = None
     if cls_path is not None:
         with open(cls_path, "r") as af:
             all_cls = [i.strip() for i in af if i.strip()]
@@ -80,8 +93,6 @@ def modify_label(
         if label_file.suffix == is_txt:
             if label_file.stem == "classes":
                 continue
-            if not all_cls:
-                raise ValueError("classes.txt is required!")
             modify_txt(label_file, old_str, new_str, all_cls)
         elif label_file.suffix == is_json:
             modify_json(label_file, old_str, new_str)
