@@ -210,7 +210,6 @@ def main(
         safe_copy_or_move(img_path, output_path / img_path.name, action)
         if copy_labels:
             safe_copy_or_move(label_path, output_path / label_path.name, action)
-            matched_count += 1
 
         matched_count += 1
 
