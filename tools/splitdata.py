@@ -21,14 +21,6 @@ IMAGE_FORMATS = [
 ]
 
 
-def create_output_directory(output_dir, parent_path, dir_path):
-    if output_dir is None:
-        output_dir = parent_path / dir_path
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 @cli.command()
 def split_dataset(
     image_path: Path = typer.Argument(..., help="图片目录"),
@@ -36,8 +28,8 @@ def split_dataset(
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
     ratio: float = typer.Option(0.1, "--ratio", "-r", help="分割比例(val集占比)"),
 ):
-    parent_dir = image_path.resolve().parent
-    output_path = create_output_directory(output_path, parent_dir, "splitdata")
+    output_path = output_path or image_path.resolve().parent / "splitdata"
+    output_path.mkdir(parents=True, exist_ok=True)
     label_path = label_path or image_path
 
     train_image_dir = Path(output_path, "images", "train")

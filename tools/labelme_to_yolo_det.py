@@ -11,14 +11,6 @@ cli = typer.Typer()
 IMAGE_FORMAT = [".jpg", ".png", ".jpeg", ".webp", ".tiff", ".bmp"]
 
 
-def create_output_directory(output_dir, source_path, folder_name):
-    if output_dir is None:
-        output_dir = Path(source_path).resolve().parent / folder_name
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 def xyxy2xywh(box, img_width, img_height):
     x_center = (box[0] + box[2]) / 2.0 / img_width
     y_center = (box[1] + box[3]) / 2.0 / img_height
@@ -51,9 +43,10 @@ def process_labelme_to_yolo_det(
 ):
     images = [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
     label_path = label_path or image_path
-    output_path = create_output_directory(output_path, image_path, "json2yolo_det")
-    classes = []
+    output_path = output_path or image_path.resolve().parent / "json2yolo_det"
+    output_path.mkdir(parents=True, exist_ok=True)
 
+    classes = []
     with open(class_path, "r") as f:
         classes = f.read().splitlines()
 

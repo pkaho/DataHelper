@@ -11,14 +11,6 @@ cli = typer.Typer()
 IMAGE_FORMAT = [".jpg", ".png", ".jpeg", ".webp", ".tiff", ".bmp"]
 
 
-def create_output_directory(output_dir, source_path, folder_name):
-    if output_dir is None:
-        output_dir = Path(source_path).resolve().parent / folder_name
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 def normalize_polygon(polygon, img_width, img_height):
     normalized = []
     for point in polygon:
@@ -56,7 +48,9 @@ def process_labelme_to_yolo_seg(
 ):
     images = [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
     label_path = label_path or image_path
-    output_path = create_output_directory(output_path, image_path, "json2yolo_seg")
+    output_path = output_path or image_path.resolve().parent / "json2yolo_seg"
+    output_path.mkdir(parents=True, exist_ok=True)
+
     classes = []
     with open(class_path, "r") as f:
         classes = f.read().splitlines()

@@ -20,14 +20,6 @@ DEFAULT_JSON_TEMPLATE = {
 }
 
 
-def create_output_directory(output_dir, source_path, folder_name):
-    if output_dir is None:
-        output_dir = Path(source_path).resolve().parent / folder_name
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 def xywh2xyxy(box, img_width, img_height):
     class_id, x, y, w, h = map(float, box.split())
     x_min = (x - w / 2) * img_width
@@ -76,7 +68,9 @@ def process_yolo_det_to_labelme(
 ):
     images = [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
     label_path = label_path or image_path
-    output_path = create_output_directory(output_path, image_path, "yolo2json_det")
+    output_path = output_path or image_path.resolve().parent / "yolo2json_det"
+    output_path.mkdir(parents=True, exist_ok=True)
+
     classes = []
     with open(class_path, "r") as f:
         classes = f.read().splitlines()
