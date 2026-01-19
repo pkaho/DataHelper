@@ -3,7 +3,6 @@ import shutil
 from enum import Enum
 from pathlib import Path
 
-
 import typer
 from rich.progress import track
 

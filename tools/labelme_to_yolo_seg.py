@@ -1,10 +1,10 @@
 import json
 import shutil
 from pathlib import Path
+
+import typer
 from PIL import Image
 from rich.progress import track
-import typer
-
 
 cli = typer.Typer()
 

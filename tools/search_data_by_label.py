@@ -1,6 +1,6 @@
 import json
-import shutil
 import operator
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 

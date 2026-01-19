@@ -1,9 +1,10 @@
 import subprocess
-import cv2
 from pathlib import Path
 from typing import Optional
-from rich.progress import Progress
+
+import cv2
 import typer
+from rich.progress import Progress
 
 cli = typer.Typer()
 
