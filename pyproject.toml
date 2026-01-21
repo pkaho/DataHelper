@@ -21,7 +21,7 @@ dependencies = [
 
 # https://docs.astral.sh/uv/guides/integration/pytorch/#configuring-accelerators-with-optional-dependencies
 # 如果要根据需求来选择 cpu 还是 cuda 版本，参考上面的链接
-# 但后续的运行需要加上指定要使用的办法，比如 `uv run --extra cu118 foo.py`
+# 如果使用上面的方法，后续的运行需要指定版本，比如 `uv run --extra cu118 foo.py`
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cu118" }
