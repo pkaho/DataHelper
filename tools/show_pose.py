@@ -5,7 +5,7 @@ import numpy as np
 import typer
 from PIL import Image, ImageDraw
 
-cli = typer.Typer()
+cli = typer.Typer(help="关键点可视化，yolo 格式")
 
 COLORS_RGB = [
     (255, 0,   0),   # 红色

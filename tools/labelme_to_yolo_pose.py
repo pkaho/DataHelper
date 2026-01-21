@@ -8,7 +8,7 @@ from rich.progress import track
 
 from tools.show_pose import show
 
-cli = typer.Typer()
+cli = typer.Typer(help="LabelMe 标签转 YOLO 标签 (关键点)")
 
 IMAGE_FORMAT = [".jpg", ".png", ".jpeg", ".webp", ".tiff", ".bmp"]
 

@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 from rich.progress import track
 
-cli = typer.Typer()
+cli = typer.Typer(help="查找未/空标注数据")
 
 IMAGE_FORMATS = {
     ".bmp",

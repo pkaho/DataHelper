@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 from rich.progress import track
 
-cli = typer.Typer()
+cli = typer.Typer(help="修改标签")
 
 
 class LabelFormat(Enum):

@@ -6,7 +6,7 @@ import typer
 from PIL import Image
 from rich.progress import track
 
-cli = typer.Typer()
+cli = typer.Typer(help="LabelMe 标签转 YOLO 标签 (目标检测)")
 
 IMAGE_FORMAT = [".jpg", ".png", ".jpeg", ".webp", ".tiff", ".bmp"]
 

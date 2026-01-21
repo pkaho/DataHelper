@@ -7,9 +7,7 @@ from typing import Dict, List, Optional, Tuple
 import typer
 from rich.progress import track
 
-cli = typer.Typer(
-    help="""根据指定规则筛选 YOLO 或 LabelMe 标签文件，并移动/复制对应图像和标签"""
-)
+cli = typer.Typer(help="根据指定规则查找标签文件")
 
 IMG_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp'}
 OPERATOR_MAP = {

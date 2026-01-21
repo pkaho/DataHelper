@@ -7,7 +7,7 @@ import typer
 from PIL import Image
 from rich.progress import track
 
-cli = typer.Typer()
+cli = typer.Typer(help="生成空标签文件，支持 txt/json 格式")
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 JSON_FORMAT = {

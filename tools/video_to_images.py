@@ -6,7 +6,7 @@ import cv2
 import typer
 from rich.progress import Progress
 
-cli = typer.Typer()
+cli = typer.Typer(help="视频转帧")
 
 VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg', '.ts'}
 
