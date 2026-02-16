@@ -7,9 +7,10 @@ import typer
 from PIL import Image
 from rich.progress import track
 
+from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
+
 cli = typer.Typer(help="生成空标签文件，支持 txt/json 格式")
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 JSON_FORMAT = {
     "version": "5.3.1",
     "flags": {},
@@ -36,7 +37,7 @@ def generate_empty_file(
     for img_file in track(
         path.iterdir(), description="Generating empty label files..."
     ):
-        if img_file.suffix.lower() not in IMAGE_EXTENSIONS:
+        if img_file.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
             continue
         filename = Path(img_file.parent) / f"{img_file.stem}.{file_type}"
 

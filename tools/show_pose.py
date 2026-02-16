@@ -5,6 +5,8 @@ import numpy as np
 import typer
 from PIL import Image, ImageDraw
 
+from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
+
 cli = typer.Typer(help="关键点可视化，yolo 格式")
 
 COLORS_RGB = [
@@ -36,7 +38,6 @@ COLORS_RGB = [
     (176, 196, 222), # 雾霾蓝
     (232, 180, 184), # 脏粉色
 ]
-IMAGE_FORMAT = [".jpeg", ".jpg", ".png", ".webp", ".tiff", ".bmp"]
 
 
 def draw_pose(pil_image, data, classes, point_order):
@@ -100,7 +101,7 @@ def show(
 ):
     label_path = image_path if label_path is None else label_path
     images = sorted(
-        [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
+        [f for f in image_path.iterdir() if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS]
     )
     if not images:
         print("No images found in the specified directory.")

@@ -5,20 +5,10 @@ from pathlib import Path
 import typer
 from rich.progress import track
 
-cli = typer.Typer(help="划分数据集")
+from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
+from tools.utils import create_output_directory
 
-IMAGE_FORMATS = [
-    ".bmp",
-    ".dng",
-    ".jpeg",
-    ".jpg",
-    ".mpo",
-    ".png",
-    ".tif",
-    ".tiff",
-    ".webp",
-    ".pfm",
-]
+cli = typer.Typer(help="划分数据集")
 
 
 @cli.command()
@@ -30,6 +20,7 @@ def split_dataset(
 ):
     output_path = output_path or image_path.resolve().parent / "splitdata"
     output_path.mkdir(parents=True, exist_ok=True)
+    output_path = create_output_directory(output_path, image_path, "splitdata")
     label_path = label_path or image_path
 
     train_image_dir = Path(output_path, "images", "train")
@@ -43,7 +34,7 @@ def split_dataset(
     val_label_dir.mkdir(parents=True, exist_ok=True)
 
     image_list = [
-        file for file in image_path.iterdir() if file.suffix in IMAGE_FORMATS
+        file for file in image_path.iterdir() if file.suffix in SUPPORTED_IMAGE_EXTENSIONS
     ]
     random.shuffle(image_list)
 

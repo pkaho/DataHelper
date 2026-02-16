@@ -6,16 +6,10 @@ import cv2
 import typer
 from rich.progress import Progress
 
+from tools.utils import SUPPORTED_VIDEO_EXTENSIONS
+from tools.utils import create_output_directory
+
 cli = typer.Typer(help="视频转帧")
-
-VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.mpg', '.mpeg', '.ts'}
-
-def create_output_directory(output_dir, source_path, folder_name):
-    if output_dir is None:
-        output_dir = Path(source_path).resolve().parent / folder_name
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
 
 
 def get_video_files_iterator(path: str):
@@ -23,7 +17,7 @@ def get_video_files_iterator(path: str):
     input_path = Path(path)
 
     if input_path.is_file():
-        if input_path.suffix.lower() in VIDEO_EXTENSIONS:
+        if input_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
             yield input_path
         else:
             print(f"文件 {path} 不是支持的视频格式")
@@ -31,7 +25,7 @@ def get_video_files_iterator(path: str):
 
     # 对于目录，使用迭代器避免一次性加载所有文件
     for file_path in sorted(input_path.iterdir()):  # 保持排序
-        if file_path.is_file() and file_path.suffix.lower() in VIDEO_EXTENSIONS:
+        if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
             yield file_path
 
 def extract_frames_with_ffmpeg(video_path: Path, output_dir: Path, gap: int, video_name: str) -> bool:

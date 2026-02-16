@@ -6,9 +6,11 @@ import typer
 from PIL import Image
 from rich.progress import track
 
+from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
+from tools.utils import create_output_directory
+
 cli = typer.Typer(help="YOLO 标签转 LabelMe 标签 (目标检测)")
 
-IMAGE_FORMAT = [".jpg", ".png", ".jpeg", ".webp", ".tiff", ".bmp"]
 DEFAULT_JSON_TEMPLATE = {
     "version": "5.3.1",
     "flags": {},
@@ -66,10 +68,9 @@ def process_yolo_det_to_labelme(
     label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
-    images = [f for f in image_path.iterdir() if f.suffix.lower() in IMAGE_FORMAT]
+    images = [f for f in image_path.iterdir() if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS]
     label_path = label_path or image_path
-    output_path = output_path or image_path.resolve().parent / "yolo2json_det"
-    output_path.mkdir(parents=True, exist_ok=True)
+    output_path = create_output_directory(output_path, image_path, "yolo2json_det")
 
     classes = []
     with open(class_path, "r") as f:

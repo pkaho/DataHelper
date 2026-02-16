@@ -6,34 +6,16 @@ from pathlib import Path
 import typer
 from rich.progress import track
 
-cli = typer.Typer(help="查找未/空标注数据")
+from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
+from tools.utils import create_output_directory
 
-IMAGE_FORMATS = {
-    ".bmp",
-    ".dng",
-    ".jpeg",
-    ".jpg",
-    ".mpo",
-    ".png",
-    ".tif",
-    ".tiff",
-    ".webp",
-    ".pfm",
-}
+cli = typer.Typer(help="查找未/空标注数据")
 
 
 class Mode(str, Enum):
     single = "single"
     nolabel = "nolabel"
     all = "all"
-
-
-def create_output_directory(output_dir, source_path, folder_name) -> Path:
-    if output_dir is None:
-        output_dir = Path(source_path).resolve().parent / folder_name
-    output_dir = Path(output_dir).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
 
 
 def move_or_copy(src_file: Path, dst_path: Path, copy: bool) -> None:
@@ -105,7 +87,7 @@ def process_data(
     image_files = [
         f
         for f in img_dir.iterdir()
-        if f.is_file() and f.suffix.lower() in IMAGE_FORMATS
+        if f.is_file() and f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
     ]
 
     processed = 0
