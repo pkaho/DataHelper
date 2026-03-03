@@ -17,6 +17,7 @@ dependencies = [
     "ultralytics<=8.3.43",
     "torch>=2.7.0",
     "torchvision>=0.22.0",
+    "schedule>=1.2.2",
 ]
 
 # https://docs.astral.sh/uv/guides/integration/pytorch/#configuring-accelerators-with-optional-dependencies
