@@ -7,19 +7,24 @@ from typing import Dict, List, Optional, Tuple
 import typer
 from rich.progress import track
 
-from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
-from tools.utils import create_output_directory
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
+OPERATOR_MAPPING = {
+    ">": operator.gt,
+    "=": operator.eq,
+    "<": operator.lt,
+    ">=": operator.ge,
+    "!=": operator.ne,
+    "<=": operator.le,
+}
 
 cli = typer.Typer(rich_markup_mode="rich")
 
-OPERATOR_MAPPING = {
-    '>': operator.gt,
-    '=': operator.eq,
-    '<': operator.lt,
-    '>=': operator.ge,
-    '!=': operator.ne,
-    '<=': operator.le
-}
+
+def create_output_directory(output_dir, source_path, folder_name) -> Path:
+    output_dir = output_dir or source_path.resolve().parent / folder_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    return output_dir
 
 
 def find_files(search_dir: Path):
@@ -31,9 +36,9 @@ def find_files(search_dir: Path):
 def load_labels(label_file_path: Path) -> Optional[Dict[str, int]]:
     label_counts = {}
     if label_file_path.suffix == ".txt":
-        with open(label_file_path, 'r') as f:
+        with open(label_file_path, "r") as f:
             for line in f:
-                parts = line.strip().split() # 去除首位空白字符并按空格分割
+                parts = line.strip().split()  # 去除首位空白字符并按空格分割
                 if not parts:
                     continue
                 class_id = parts[0]
@@ -41,11 +46,11 @@ def load_labels(label_file_path: Path) -> Optional[Dict[str, int]]:
         return label_counts
 
     elif label_file_path.suffix == ".json":
-        with open(label_file_path, 'r', encoding='utf-8') as f:
+        with open(label_file_path, "r", encoding="utf-8") as f:
             label_data = json.load(f)
 
-        for shape in label_data.get('shapes', []):
-            class_name = shape.get('label', '').strip()
+        for shape in label_data.get("shapes", []):
+            class_name = shape.get("label", "").strip()
             if class_name:
                 label_counts[class_name] = label_counts.get(class_name, 0) + 1
         return label_counts
@@ -55,19 +60,21 @@ def load_labels(label_file_path: Path) -> Optional[Dict[str, int]]:
 
 def get_corressponding_image_path(label_file_path: Path) -> Optional[Path]:
     for ext in SUPPORTED_IMAGE_EXTENSIONS:
-        image_file_path = label_file_path.with_suffix(ext) # 替换文件扩展名
+        image_file_path = label_file_path.with_suffix(ext)  # 替换文件扩展名
         if image_file_path.exists():
             return image_file_path
 
     return None
 
 
-def parse_rule_pairs(rule_pairs: List[str], default_operator: str = '>=') -> Dict[str, Tuple[str, int]]:
+def parse_rule_pairs(
+    rule_pairs: List[str], default_operator: str = ">="
+) -> Dict[str, Tuple[str, int]]:
     parsed_rules = {}
     for rule in rule_pairs:
-        operator_symbol = default_operator # 无自定义操作符时，使用默认操作符
+        operator_symbol = default_operator  # 无自定义操作符时，使用默认操作符
 
-        rule_parts = rule.split(':')
+        rule_parts = rule.split(":")
         if len(rule_parts) == 1:
             class_name, count_str = rule, 1
         elif len(rule_parts) == 2:
@@ -89,7 +96,9 @@ def parse_rule_pairs(rule_pairs: List[str], default_operator: str = '>=') -> Dic
             if count < 0:
                 raise ValueError
         except ValueError:
-            raise typer.BadParameter(f"规则 '{rule}' 中的数量来必须为正整数, 当前值: '{count_str}'")
+            raise typer.BadParameter(
+                f"规则 '{rule}' 中的数量来必须为正整数, 当前值: '{count_str}'"
+            )
 
         parsed_rules[class_name] = (operator_symbol, count)
 
@@ -97,20 +106,20 @@ def parse_rule_pairs(rule_pairs: List[str], default_operator: str = '>=') -> Dic
 
 
 def check_rule_matching(label_counts: Dict[str, int], **rules) -> bool:
-    current_classes = set(label_counts.keys()) # 当前包含的类别集合
-    current_total_count = sum(label_counts.values()) # 当前标签总数量
+    current_classes = set(label_counts.keys())  # 当前包含的类别集合
+    current_total_count = sum(label_counts.values())  # 当前标签总数量
 
     # 包含任一指定类别
-    if rules.get('any'):
-        any_rules = parse_rule_pairs(rules['any'], default_operator='>=')
+    if rules.get("any"):
+        any_rules = parse_rule_pairs(rules["any"], default_operator=">=")
         for class_name, (op, count) in any_rules.items():
             current_count = label_counts.get(class_name, 0)
             if OPERATOR_MAPPING[op](current_count, count):
                 return True
 
     # 包含所有指定类别
-    if rules.get('all'):
-        all_rules = parse_rule_pairs(rules['all'], default_operator='>=')
+    if rules.get("all"):
+        all_rules = parse_rule_pairs(rules["all"], default_operator=">=")
         all_matched = True
 
         for class_name, (op, count) in all_rules.items():
@@ -123,8 +132,8 @@ def check_rule_matching(label_counts: Dict[str, int], **rules) -> bool:
             return True
 
     # 类别集合和数量完全匹配
-    if rules.get('exact'):
-        exact_rules = parse_rule_pairs(rules['exact'], default_operator='>=')
+    if rules.get("exact"):
+        exact_rules = parse_rule_pairs(rules["exact"], default_operator=">=")
 
         # 检查类别集合是否完全一致
         if current_classes == set(exact_rules.keys()):
@@ -141,15 +150,14 @@ def check_rule_matching(label_counts: Dict[str, int], **rules) -> bool:
                 return True
 
     # 总标签数量满足阈值
-    if rules.get('total'):
-        total_rule = rules['total']
-        virtual_total_rule = f"__TOTAL__:{total_rule}"
+    if rules.get("total"):
+        wrapped = [f"__TOTAL__:{expr}" for expr in rules["total"]]
 
-        total_rule = parse_rule_pairs([virtual_total_rule], default_operator='>=')
-        op, count = total_rule['__TOTAL__']
+        total_rule = parse_rule_pairs(wrapped, default_operator=">=")
 
-        if OPERATOR_MAPPING[op](current_total_count, count):
-            return True
+        for _, (op, count) in total_rule.items():
+            if OPERATOR_MAPPING[op](current_total_count, count):
+                return True
 
     return False
 
@@ -163,24 +171,32 @@ def safe_copy_or_move(src: Path, dst: Path, action: str):
 
 @cli.command()
 def main(
-    input_path: Path = typer.Argument(..., help="输入目录路径, 包含标签文件(.txt/.json)和图像"),
+    input_path: Path = typer.Argument(
+        ..., help="输入目录路径, 包含标签文件(.txt/.json)和图像"
+    ),
     output_path: Path = typer.Option(
         None,
         "--output_dir",
         "-o",
-        help="匹配文件输出目录，未指定则在输入目录同级生成 search_data 文件夹"
+        help="匹配文件输出目录，未指定则在输入目录同级生成 search_data 文件夹",
     ),
-    action: str = typer.Option("move", "--action", "-a", help="对匹配文件执行的操作：copy、move(默认)"),
+    action: str = typer.Option(
+        "move", "--action", "-a", help="对匹配文件执行的操作：copy、move(默认)"
+    ),
     include_labels: bool = typer.Option(
         True,
         "--include-labels/--exclude-labels",
-        help="是否同步处理标签文件(默认包含), 仅需处理图像时使用 --exclude-labels"
+        help="是否同步处理标签文件(默认包含), 仅需处理图像时使用 --exclude-labels",
     ),
     # 规则
     any: Optional[List[str]] = typer.Option(None, "--any", help="匹配任一指定类别"),
     all: Optional[List[str]] = typer.Option(None, "--all", help="匹配所有指定类别"),
-    exact: Optional[List[str]] = typer.Option(None, "--exact", help="精确匹配类别集合和数量"),
-    total: Optional[int] = typer.Option(None, "--total", help="匹配总标签数量规则"),
+    exact: Optional[List[str]] = typer.Option(
+        None, "--exact", help="精确匹配类别集合和数量"
+    ),
+    total: Optional[List[str]] = typer.Option(
+        None, "--total", help="匹配总标签数量规则"
+    ),
 ):
     """
     根据指定的标签规则查找并处理对应的图像和标签文件
@@ -213,12 +229,19 @@ def main(
         if not label_counts:
             continue
 
-        if not check_rule_matching(label_counts, any=any, all=all, exact=exact, total=total):
+        if not check_rule_matching(
+            label_counts, any=any, all=all, exact=exact, total=total
+        ):
             continue
 
-        img_file = next((label_file.with_suffix(ext)
-                        for ext in SUPPORTED_IMAGE_EXTENSIONS
-                        if label_file.with_suffix(ext).exists()), None)
+        img_file = next(
+            (
+                label_file.with_suffix(ext)
+                for ext in SUPPORTED_IMAGE_EXTENSIONS
+                if label_file.with_suffix(ext).exists()
+            ),
+            None,
+        )
         if img_file:
             safe_copy_or_move(img_file, output_path / img_file.name, action)
 
@@ -229,7 +252,7 @@ def main(
 
     typer.secho(
         f"完成！共匹配 {matched_count} 个样本，已{'复制' if action == 'copy' else '移动'}至 {output_path}",
-        fg=typer.colors.GREEN
+        fg=typer.colors.GREEN,
     )
 
 
