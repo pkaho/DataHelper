@@ -1,12 +1,13 @@
 import asyncio
+import concurrent.futures
+import os
+import time
+from datetime import datetime
+
 import cv2
 import requests
-from requests.auth import HTTPDigestAuth
-from datetime import datetime
-import os
 import schedule
-import time
-import concurrent.futures
+from requests.auth import HTTPDigestAuth
 
 # 配置项（集中管理常量，便于维护）
 CONFIG = {
@@ -17,11 +18,12 @@ CONFIG = {
     "PTZ_WAIT": 2,
     "MAX_WORKERS": 10,
     "IP_LIST": [f"192.168.180.{i}" for i in range(0, 1)],
-    "CRON_TIMES": [":20", ":50"]
+    "CRON_TIMES": [":20", ":50"],
 }
 
 # 初始化目录
 os.makedirs(CONFIG["IMG_DIR"], exist_ok=True)
+
 
 def control_ptz(ip, channel=1, preset=1):
     """调用摄像头预置点（简化函数名，精简逻辑）"""
@@ -31,14 +33,17 @@ def control_ptz(ip, channel=1, preset=1):
             auth=CONFIG["AUTH"],
             data=f"<PTZData><presetId>{preset}</presetId></PTZData>",
             headers={"Content-Type": "application/xml"},
-            timeout=CONFIG["PTZ_TIMEOUT"]
+            timeout=CONFIG["PTZ_TIMEOUT"],
         )
         success = resp.status_code == 200
-        print(f"PTZ调用 {'成功' if success else '失败'}: {ip} (状态码: {resp.status_code})")
+        print(
+            f"PTZ调用 {'成功' if success else '失败'}: {ip} (状态码: {resp.status_code})"
+        )
         return success
     except Exception as e:
         print(f"PTZ调用异常: {ip} - {str(e)}")
         return False
+
 
 def capture_camera(ip):
     """捕获单个摄像头图像（精简逻辑，合并重复判断）"""
@@ -51,7 +56,9 @@ def capture_camera(ip):
 
     # 3. 捕获图像
     try:
-        cap = cv2.VideoCapture(f"rtsp://admin:hxzh2019@{ip}:554/h264/ch1/main/av_stream")
+        cap = cv2.VideoCapture(
+            f"rtsp://admin:hxzh2019@{ip}:554/h264/ch1/main/av_stream"
+        )
         start_time = time.time()
         ret, frame = False, None
 
@@ -77,12 +84,15 @@ def capture_camera(ip):
         print(f"捕获图像异常: {ip} - {str(e)}")
         return False
 
+
 async def capture_all_cameras(ip_list):
     """异步并行捕获所有摄像头（精简任务创建和结果统计）"""
     loop = asyncio.get_running_loop()
     success_count = 0
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=CONFIG["MAX_WORKERS"]) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=CONFIG["MAX_WORKERS"]
+    ) as executor:
         # 批量创建任务并执行
         tasks = [loop.run_in_executor(executor, capture_camera, ip) for ip in ip_list]
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -100,9 +110,11 @@ async def capture_all_cameras(ip_list):
     print(f"任务完成: 成功 {success_count}/{len(ip_list)}")
     return success_count
 
+
 def run_capture_task():
     """封装异步任务执行逻辑（简化调用）"""
     asyncio.run(capture_all_cameras(CONFIG["IP_LIST"]))
+
 
 def main():
     """主函数（精简定时任务配置）"""
@@ -122,6 +134,7 @@ def main():
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n程序已停止")
+
 
 if __name__ == "__main__":
     # 修改 CONFIG["IP_LIST"]

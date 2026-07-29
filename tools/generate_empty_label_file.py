@@ -7,10 +7,7 @@ import typer
 from PIL import Image
 from rich.progress import track
 
-from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
-
-cli = typer.Typer(help="生成空标签文件，支持 txt/json 格式")
-
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 JSON_FORMAT = {
     "version": "5.3.1",
     "flags": {},
@@ -20,6 +17,9 @@ JSON_FORMAT = {
     "imageHeight": None,
     "imageWidth": None,
 }
+
+
+cli = typer.Typer(help="生成空标签文件，支持 txt/json 格式")
 
 
 class LabelType(str, Enum):

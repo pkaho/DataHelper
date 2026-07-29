@@ -6,8 +6,7 @@ from pathlib import Path
 import typer
 from rich.progress import track
 
-from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
-from tools.utils import create_output_directory
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 
 cli = typer.Typer(help="查找未/空标注数据")
 
@@ -16,6 +15,13 @@ class Mode(str, Enum):
     single = "single"
     nolabel = "nolabel"
     all = "all"
+
+
+def create_output_directory(output_dir, source_path, folder_name) -> Path:
+    output_dir = output_dir or source_path.resolve().parent / folder_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    return output_dir
 
 
 def move_or_copy(src_file: Path, dst_path: Path, copy: bool) -> None:

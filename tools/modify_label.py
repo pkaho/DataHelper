@@ -38,7 +38,9 @@ def modify_txt(file, old_str, new_str, all_cls=None):
                 new_str_id = new_str
             else:
                 if all_cls is None:
-                    raise ValueError("classes.txt is required when using string labels!")
+                    raise ValueError(
+                        "classes.txt is required when using string labels!"
+                    )
                 new_str_id = str(all_cls.index(new_str))
 
         parts = line.split(" ")

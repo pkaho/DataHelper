@@ -5,39 +5,39 @@ import numpy as np
 import typer
 from PIL import Image, ImageDraw
 
-from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
+COLORS_RGB = [
+    (255, 0, 0),  # 红色
+    (0, 255, 0),  # 绿色
+    (0, 0, 255),  # 蓝色
+    (255, 255, 0),  # 黄色
+    (0, 255, 255),  # 青色
+    (255, 0, 255),  # 品红
+    (0, 0, 0),  # 黑色
+    (255, 255, 255),  # 白色
+    (128, 128, 128),  # 灰色
+    (255, 165, 0),  # 橙色
+    (128, 0, 128),  # 紫色
+    (255, 192, 203),  # 粉色
+    (165, 42, 42),  # 棕色
+    (128, 128, 0),  # 橄榄色
+    (0, 0, 139),  # 深蓝色
+    (135, 206, 235),  # 天蓝色
+    (255, 127, 80),  # 珊瑚色
+    (255, 215, 0),  # 金色
+    (192, 192, 192),  # 银色
+    (152, 255, 152),  # 薄荷绿
+    (230, 230, 250),  # 薰衣草紫
+    (183, 110, 121),  # 玫瑰金
+    (0, 71, 171),  # 孔雀蓝
+    (255, 219, 88),  # 芥末黄
+    (86, 130, 3),  # 牛油果绿
+    (176, 196, 222),  # 雾霾蓝
+    (232, 180, 184),  # 脏粉色
+]
+
 
 cli = typer.Typer(help="关键点可视化，yolo 格式")
-
-COLORS_RGB = [
-    (255, 0,   0),   # 红色
-    (0,   255, 0),   # 绿色
-    (0,   0,   255), # 蓝色
-    (255, 255, 0),   # 黄色
-    (0,   255, 255), # 青色
-    (255, 0,   255), # 品红
-    (0,   0,   0),   # 黑色
-    (255, 255, 255), # 白色
-    (128, 128, 128), # 灰色
-    (255, 165, 0),   # 橙色
-    (128, 0,   128), # 紫色
-    (255, 192, 203), # 粉色
-    (165, 42,  42),  # 棕色
-    (128, 128, 0),   # 橄榄色
-    (0,   0,   139), # 深蓝色
-    (135, 206, 235), # 天蓝色
-    (255, 127, 80),  # 珊瑚色
-    (255, 215, 0),   # 金色
-    (192, 192, 192), # 银色
-    (152, 255, 152), # 薄荷绿
-    (230, 230, 250), # 薰衣草紫
-    (183, 110, 121), # 玫瑰金
-    (0,   71,  171), # 孔雀蓝
-    (255, 219, 88),  # 芥末黄
-    (86,  130, 3),   # 牛油果绿
-    (176, 196, 222), # 雾霾蓝
-    (232, 180, 184), # 脏粉色
-]
 
 
 def draw_pose(pil_image, data, classes, point_order):
@@ -101,7 +101,11 @@ def show(
 ):
     label_path = image_path if label_path is None else label_path
     images = sorted(
-        [f for f in image_path.iterdir() if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS]
+        [
+            f
+            for f in image_path.iterdir()
+            if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+        ]
     )
     if not images:
         print("No images found in the specified directory.")

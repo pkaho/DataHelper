@@ -6,10 +6,16 @@ import cv2
 import typer
 from rich.progress import Progress
 
-from tools.utils import SUPPORTED_VIDEO_EXTENSIONS
-from tools.utils import create_output_directory
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".avi", ".mkv", ".flv", ".mov", ".wmv", ".webm"}
 
 cli = typer.Typer(help="视频转帧")
+
+
+def create_output_directory(output_dir, source_path, folder_name) -> Path:
+    output_dir = output_dir or source_path.resolve().parent / folder_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    return output_dir
 
 
 def get_video_files_iterator(path: str):
@@ -25,10 +31,16 @@ def get_video_files_iterator(path: str):
 
     # 对于目录，使用迭代器避免一次性加载所有文件
     for file_path in sorted(input_path.iterdir()):  # 保持排序
-        if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
+        if (
+            file_path.is_file()
+            and file_path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS
+        ):
             yield file_path
 
-def extract_frames_with_ffmpeg(video_path: Path, output_dir: Path, gap: int, video_name: str) -> bool:
+
+def extract_frames_with_ffmpeg(
+    video_path: Path, output_dir: Path, gap: int, video_name: str
+) -> bool:
     """使用ffmpeg提取帧"""
     try:
         output_pattern = f"{str(output_dir)}/{video_path.stem}_%05d.jpg"
@@ -51,7 +63,10 @@ def extract_frames_with_ffmpeg(video_path: Path, output_dir: Path, gap: int, vid
         print(f"ffmpeg处理失败: {e}")
         return False
 
-def extract_frames_with_opencv(video_path: Path, output_dir: Path, gap: int, video_name: str) -> bool:
+
+def extract_frames_with_opencv(
+    video_path: Path, output_dir: Path, gap: int, video_name: str
+) -> bool:
     """使用OpenCV提取帧"""
     try:
         cap = cv2.VideoCapture(str(video_path))
@@ -64,9 +79,11 @@ def extract_frames_with_opencv(video_path: Path, output_dir: Path, gap: int, vid
         frame_count = 0
         saved_count = 0
 
-        update_rate = int(total_frames/gap)
+        update_rate = int(total_frames / gap)
         with Progress() as progress:
-            task = progress.add_task(f"[cyan]提取 {video_name[:15]}...[/cyan]", total=total_frames)
+            task = progress.add_task(
+                f"[cyan]提取 {video_name[:15]}...[/cyan]", total=total_frames
+            )
             while True:
                 ret, frame = cap.read()
                 if not ret:
@@ -74,7 +91,9 @@ def extract_frames_with_opencv(video_path: Path, output_dir: Path, gap: int, vid
 
                 if frame_count % gap == 0:
                     progress.update(task, advance=update_rate)
-                    output_file = output_dir / f"{video_path.stem}_{saved_count:05d}.jpg"
+                    output_file = (
+                        output_dir / f"{video_path.stem}_{saved_count:05d}.jpg"
+                    )
                     success = cv2.imwrite(str(output_file), frame)
                     if success:
                         saved_count += 1
@@ -94,11 +113,14 @@ def extract_frames_with_opencv(video_path: Path, output_dir: Path, gap: int, vid
         print(f"OpenCV处理失败: {e}")
         return False
 
+
 @cli.command()
 def extract_frames(
     path: str = typer.Argument(..., help="视频文件路径或包含视频文件的文件夹路径"),
     gap: int = typer.Option(50, "-gap", "-g", help="间隔多少帧保存一次"),
-    output_path: Optional[Path] = typer.Option(None, "--output_path", "-o", help="输出目录"),
+    output_path: Optional[Path] = typer.Option(
+        None, "--output_path", "-o", help="输出目录"
+    ),
 ) -> None:
     """提取视频帧，默认使用ffmpeg，如果没有ffmpeg则使用OpenCV"""
     video_files = get_video_files_iterator(path)
@@ -127,9 +149,13 @@ def extract_frames(
         success = False
 
         if use_ffmpeg:
-            success = extract_frames_with_ffmpeg(video_file, video_output_path, gap, video_file.name)
+            success = extract_frames_with_ffmpeg(
+                video_file, video_output_path, gap, video_file.name
+            )
         else:
-            success = extract_frames_with_opencv(video_file, video_output_path, gap, video_file.name)
+            success = extract_frames_with_opencv(
+                video_file, video_output_path, gap, video_file.name
+            )
 
         if success:
             print(f"视频 {video_file.name} 处理完成！")
@@ -137,11 +163,12 @@ def extract_frames(
         else:
             print(f"视频 {video_file.name} 处理失败！")
 
-    print("="*60)
+    print("=" * 60)
     if processed_count > 0:
         print(f"\n总共处理了 {processed_count} 个视频文件")
     elif not found_files:
         print("\n没有找到任何视频文件进行处理。")
+
 
 if __name__ == "__main__":
     cli()

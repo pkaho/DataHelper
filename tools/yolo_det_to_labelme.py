@@ -6,11 +6,7 @@ import typer
 from PIL import Image
 from rich.progress import track
 
-from tools.utils import SUPPORTED_IMAGE_EXTENSIONS
-from tools.utils import create_output_directory
-
-cli = typer.Typer(help="YOLO 标签转 LabelMe 标签 (目标检测)")
-
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 DEFAULT_JSON_TEMPLATE = {
     "version": "5.3.1",
     "flags": {},
@@ -20,6 +16,16 @@ DEFAULT_JSON_TEMPLATE = {
     "imageHeight": None,
     "imageWidth": None,
 }
+
+
+cli = typer.Typer(help="YOLO 标签转 LabelMe 标签 (目标检测)")
+
+
+def create_output_directory(output_dir, source_path, folder_name) -> Path:
+    output_dir = output_dir or source_path.resolve().parent / folder_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    return output_dir
 
 
 def xywh2xyxy(box, img_width, img_height):
@@ -68,7 +74,11 @@ def process_yolo_det_to_labelme(
     label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
-    images = [f for f in image_path.iterdir() if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS]
+    images = [
+        f
+        for f in image_path.iterdir()
+        if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+    ]
     label_path = label_path or image_path
     output_path = create_output_directory(output_path, image_path, "yolo2json_det")
 
