@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 from rich.progress import track
 
-cli = typer.Typer(help="修改标签")
+cli = typer.Typer(rich_markup_mode="rich", help="修改标签")
 
 
 class LabelFormat(Enum):
@@ -79,8 +79,28 @@ def modify_label(
     new_str: str = typer.Option(None, "--new_str", "-n", help="要替换的新标签名"),
     cls_path: str = typer.Option(None, "--cls_path", "-c", help="classes.txt"),
 ):
+    """
+    批量修改标签文件中的类别 (支持 txt 和 json)
+
+    说明:
+        1. 支持修改 .txt (YOLO 格式) 和 .json (LabelMe 格式) 标签文件
+        2. txt 文件: 通过类别 ID 或类别名定位 (使用类别名时需传 -c classes.txt)
+        3. json 文件: 直接按 label 名称匹配
+        4. 不传 -n 时表示删除该类别 (等效删除标注)
+        5. 自动跳过 classes.txt 文件本身
+
+    使用示例:
+        1. 【按类别 ID 替换】把类别 0 改为类别 1 (txt 标签)
+            python modify_label.py ./labels 0 -n 1
+
+        2. 【按类别名替换】需要 classes.txt
+            python modify_label.py ./labels dog -n cat -c ./classes.txt
+
+        3. 【删除类别】删除所有 dog 标注
+            python modify_label.py ./labels dog
+    """
     if not path.exists():
-        return f"{path} not found!"
+        raise typer.BadParameter(f"{path} not found!")
 
     is_txt = LabelFormat.TXT.value
     is_json = LabelFormat.JSON.value

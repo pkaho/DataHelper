@@ -8,7 +8,7 @@ from rich.progress import Progress
 
 SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".avi", ".mkv", ".flv", ".mov", ".wmv", ".webm"}
 
-cli = typer.Typer(help="视频转帧")
+cli = typer.Typer(rich_markup_mode="rich", help="视频转帧")
 
 
 def create_output_directory(output_dir, source_path, folder_name) -> Path:
@@ -79,7 +79,6 @@ def extract_frames_with_opencv(
         frame_count = 0
         saved_count = 0
 
-        update_rate = int(total_frames / gap)
         with Progress() as progress:
             task = progress.add_task(
                 f"[cyan]提取 {video_name[:15]}...[/cyan]", total=total_frames
@@ -89,11 +88,10 @@ def extract_frames_with_opencv(
                 if not ret:
                     break
 
+                progress.update(task, advance=1)
+
                 if frame_count % gap == 0:
-                    progress.update(task, advance=update_rate)
-                    output_file = (
-                        output_dir / f"{video_path.stem}_{saved_count:05d}.jpg"
-                    )
+                    output_file = output_dir / f"{video_path.stem}_{saved_count:05d}.jpg"
                     success = cv2.imwrite(str(output_file), frame)
                     if success:
                         saved_count += 1
@@ -122,7 +120,26 @@ def extract_frames(
         None, "--output_path", "-o", help="输出目录"
     ),
 ) -> None:
-    """提取视频帧，默认使用ffmpeg，如果没有ffmpeg则使用OpenCV"""
+    """
+    提取视频帧 (支持视频文件或目录, 可批量处理)
+
+    说明:
+        1. 支持格式: mp4, avi, mkv, flv, mov, wmv, webm
+        2. 优先使用 ffmpeg 提取 (速度快), 未安装 ffmpeg 时自动回退 OpenCV
+        3. 按间隔保存: 每 gap 帧保存一帧, 默认 50
+        4. 每个视频单独输出到一个子目录, 命名 video2img_{gap}_{视频名}
+        5. 输出文件命名: 视频名_编号.jpg
+
+    使用示例:
+        1. 【单个视频】每 50 帧保存一帧
+            python video_to_images.py ./video.mp4
+
+        2. 【整个目录】批量处理目录下所有视频
+            python video_to_images.py ./videos
+
+        3. 【指定间隔与输出】每 100 帧保存一帧, 输出到 ./frames
+            python video_to_images.py ./videos -gap 100 -o ./frames
+    """
     video_files = get_video_files_iterator(path)
 
     processed_count = 0

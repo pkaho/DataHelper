@@ -8,7 +8,7 @@ from rich.progress import track
 
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 
-cli = typer.Typer(help="查找未/空标注数据")
+cli = typer.Typer(rich_markup_mode="rich", help="查找未/空标注数据")
 
 
 class Mode(str, Enum):
@@ -72,6 +72,27 @@ def process_data(
         help="处理模式 [single: 没有标签文件, nolabel: 空标签文件, all: 同时两种]",
     ),
 ):
+    """
+    查找并处理未标注或空标注的数据
+
+    说明:
+        1. single 模式: 查找没有任何标签文件 (.txt/.json) 的图片
+        2. nolabel 模式: 查找标签文件为空或无效 (txt 空文件/字段不足5, json 无 shapes) 的图片
+        3. all 模式: 同时处理以上两种
+        4. 默认移动, 使用 --copy 改为复制; 输出到图片目录同级的
+           find_single / find_nolabel 文件夹
+        5. nolabel 模式下标签文件会随图片一起移动/复制
+
+    使用示例:
+        1. 【查找无标签图片】移动到 find_single
+            python find_unlabeled_data.py ./images --mode single
+
+        2. 【查找空标签图片】标签在 labels 目录
+            python find_unlabeled_data.py ./images -l ./labels --mode nolabel
+
+        3. 【复制而非移动】同时处理两种模式, 复制到输出目录
+            python find_unlabeled_data.py ./images --mode all --copy
+    """
     img_dir = image_path.resolve()
     label_dir = label_path.resolve() if label_path else img_dir
 

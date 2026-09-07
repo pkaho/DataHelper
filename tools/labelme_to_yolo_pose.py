@@ -2,168 +2,15 @@ import json
 import shutil
 from pathlib import Path
 
-import cv2
-import numpy as np
 import typer
-from PIL import Image, ImageDraw
+from PIL import Image
 from rich.progress import track
 
-from tools.show_pose import show
-
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
-COLORS_RGB = [
-    (255, 0, 0),  # 红色
-    (0, 255, 0),  # 绿色
-    (0, 0, 255),  # 蓝色
-    (255, 255, 0),  # 黄色
-    (0, 255, 255),  # 青色
-    (255, 0, 255),  # 品红
-    (0, 0, 0),  # 黑色
-    (255, 255, 255),  # 白色
-    (128, 128, 128),  # 灰色
-    (255, 165, 0),  # 橙色
-    (128, 0, 128),  # 紫色
-    (255, 192, 203),  # 粉色
-    (165, 42, 42),  # 棕色
-    (128, 128, 0),  # 橄榄色
-    (0, 0, 139),  # 深蓝色
-    (135, 206, 235),  # 天蓝色
-    (255, 127, 80),  # 珊瑚色
-    (255, 215, 0),  # 金色
-    (192, 192, 192),  # 银色
-    (152, 255, 152),  # 薄荷绿
-    (230, 230, 250),  # 薰衣草紫
-    (183, 110, 121),  # 玫瑰金
-    (0, 71, 171),  # 孔雀蓝
-    (255, 219, 88),  # 芥末黄
-    (86, 130, 3),  # 牛油果绿
-    (176, 196, 222),  # 雾霾蓝
-    (232, 180, 184),  # 脏粉色
-]
 
-cli = typer.Typer(help="关键点可视化，yolo 格式")
-
-
-def draw_pose(pil_image, data, classes, point_order):
-    """
-    在 PIL 图像上绘制关键点检测结果
-
-    Args:
-        pil_image: PIL 图像对象
-        data: 包含关键点检测结果的列表
-        classes: 类别列表
-        point_order: 关键点顺序列表
-    """
-    draw = ImageDraw.Draw(pil_image)
-    width, height = pil_image.size
-
-    for detection in data:
-        parts = detection.strip().split()
-        if len(parts) < 1:
-            continue
-
-        cls_id = int(parts[0])
-        color = COLORS_RGB[cls_id % len(COLORS_RGB)]
-
-        center_x = float(parts[1]) * width
-        center_y = float(parts[2]) * height
-        box_width = float(parts[3]) * width
-        box_height = float(parts[4]) * height
-
-        x1 = center_x - box_width / 2
-        y1 = center_y - box_height / 2
-        x2 = center_x + box_width / 2
-        y2 = center_y + box_height / 2
-        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
-
-        label = f"{classes[cls_id]}" if cls_id < len(classes) else str(cls_id)
-        draw.text((x1, y1 - 10), label, fill=color)
-
-        keypoints = parts[5:]
-        for i in range(0, len(keypoints), 3):
-            if i + 2 >= len(keypoints):
-                break
-
-            x = float(keypoints[i]) * width
-            y = float(keypoints[i + 1]) * height
-            v = int(float(keypoints[i + 2]))
-            draw.text((x, y), point_order[i // 3], fill=color)
-
-            if v > 0:
-                draw.ellipse([x - 3, y - 3, x + 3, y + 3], fill=color)
-
-    return pil_image
-
-
-@cli.command()
-def show(
-    image_path: Path = typer.Argument(..., help="图片目录"),
-    class_path: Path = typer.Argument(
-        ..., help="classes.txt, 目标分类和关键点分类(按实际顺序排列)中间用空行分隔"
-    ),
-    label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
-):
-    label_path = image_path if label_path is None else label_path
-    images = sorted(
-        [
-            f
-            for f in image_path.iterdir()
-            if f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
-        ]
-    )
-    if not images:
-        print("No images found in the specified directory.")
-        return
-
-    with open(class_path, "r") as f:
-        classes = f.read().splitlines()
-        split_idx = classes.index("") if "" in classes else len(classes)
-        classes, point_order = classes[:split_idx], classes[split_idx + 1 :]
-
-    current_idx = 0
-    while True:
-        img_file = images[current_idx]
-        base_name = img_file.stem
-        txt_file = Path(label_path) / f"{base_name}.txt"
-
-        pil_img = Image.open(img_file)
-
-        if txt_file.exists():
-            with open(txt_file, "r") as f:
-                lines = f.readlines()
-            pil_img = draw_pose(pil_img, lines, classes, point_order)
-        else:
-            print(f"Label file not found: {txt_file}")
-
-        cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-
-        info_text = f"{img_file.name} ({current_idx + 1}/{len(images)})"
-        cv2.putText(
-            cv_img, info_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2
-        )
-
-        help_text = "Press: [a]prev [d]next [q]quit"
-        cv2.putText(
-            cv_img,
-            help_text,
-            (10, cv_img.shape[0] - 10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.7,
-            (0, 255, 255),
-            2,
-        )
-
-        cv2.imshow("YOLO Pose Visualization", cv_img)
-
-        key = cv2.waitKey(0) & 0xFF
-        if key == ord("q"):
-            break
-        elif key == ord("d"):
-            current_idx = (current_idx + 1) % len(images)
-        elif key == ord("a"):
-            current_idx = (current_idx - 1) % len(images)
-
-    cv2.destroyAllWindows()
+# YOLO pose 可见性约定: 0=缺失/未标注, 1=遮挡, 2=可见
+KEYPOINT_VISIBILITY = 2
+MISSING_KEYPOINT_VISIBILITY = 0
 
 
 def create_output_directory(output_dir, source_path, folder_name) -> Path:
@@ -173,7 +20,7 @@ def create_output_directory(output_dir, source_path, folder_name) -> Path:
     return output_dir
 
 
-cli = typer.Typer(help="LabelMe 标签转 YOLO 标签 (关键点)")
+cli = typer.Typer(rich_markup_mode="rich", help="LabelMe 标签转 YOLO 标签 (关键点检测)")
 
 
 def xyxy2xywh(box, img_width, img_height):
@@ -184,88 +31,120 @@ def xyxy2xywh(box, img_width, img_height):
     return (x_center, y_center, width, height)
 
 
-def convert_labelme_to_yolo(
-    json_path, txt_path, classes, point_order, img_width, img_height
+def collect_keypoint_names(label_path, images):
+    """未提供关键点名称文件时, 从所有 json 的 point 类型 shape 中收集关键点名称"""
+    names = set()
+    for img_file in images:
+        json_file = label_path / f"{img_file.stem}.json"
+        if not json_file.exists():
+            continue
+        with open(json_file, "r") as f:
+            data = json.load(f)
+        for shape in data["shapes"]:
+            if shape["shape_type"] == "point":
+                names.add(shape["label"])
+    return sorted(names)
+
+
+def convert_labelme_to_yolo_pose(
+    json_path, txt_path, classes, keypoint_names, img_width, img_height
 ):
+    """将单个 LabelMe json 转换为 YOLO pose 标注。
+
+    约定:
+    - 目标框: shape_type 为 rectangle 的 shape, label 为类别名
+    - 关键点: shape 的 label 为关键点名称(通常 shape_type 为 point)
+    - 框与关键点通过 group_id 匹配: 同一 group_id 的框和点构成一个实例,
+      组内没有关键点的框, 关键点输出全 0 (只检测不带点)
+    - 未设置 group_id 的 shape 合并为一个实例
+    - 输出格式: class_id x_center y_center width height x1 y1 v1 x2 y2 v2 ...
+      缺失的关键点输出 0 0 0
+    """
     with open(json_path, "r") as f:
         data = json.load(f)
 
-    retangles = []
-    points = []
-
-    p_order = {po: None for po in point_order}
-
+    # 按 group_id 分组, group_id 为 None 的 shape 合并为一个实例
+    groups = {}
     for shape in data["shapes"]:
-        if int(shape["group_id"]) > 2:
-            raise ValueError(
-                f"{json_path} 可见性不符合规范 [0: 不可见, 1: 部分可见, 2: 全部可见]"
-            )
-
-        if shape["group_id"] is None:
-            shape["group_id"] = 2
-
-        shape_type = shape["shape_type"]
-        infos = {"label": shape["label"]}
-
-        if shape_type == "rectangle":
-            infos["xyxy"] = shape["points"][0] + shape["points"][1]
-            infos.update(p_order)
-            retangles.append(infos)
-        elif shape_type == "point":
-            infos["vis"] = shape["group_id"]
-            infos["xy"] = shape["points"][0]
-            points.append(infos)
-
-    point_in_rectangle = {tuple(point["xy"]): False for point in points}
-
-    for point in points:
-        x, y = point["xy"]
-        label = point["label"]
-        for retangle in retangles:
-            x1, y1, x2, y2 = retangle["xyxy"]
-            x_min, x_max = min(x1, x2), max(x1, x2)
-            y_min, y_max = min(y1, y2), max(y1, y2)
-            if x_min <= x <= x_max and y_min <= y <= y_max:
-                # if retangle.get(label) is not None:
-                #     raise f"{json_path} {label} has more than one point in one rectangle"
-                retangle[label] = point
-                point_in_rectangle[(x, y)] = True
-
-    outside_points = [
-        point for point, is_inside in point_in_rectangle.items() if not is_inside
-    ]
-    if outside_points:
-        print(
-            f"{json_path} contains {len(outside_points)} points not in any rectangle:"
-        )
+        group_id = shape.get("group_id")
+        key = group_id if group_id is not None else "__default__"
+        groups.setdefault(key, []).append(shape)
 
     with open(txt_path, "w") as f:
-        for retangle in retangles:
-            xywh = xyxy2xywh(retangle["xyxy"], img_width, img_height)
-            yolo_box = [round(i, 6) for i in xywh]
-            for po in point_order:
-                if retangle[po]:
-                    x, y = retangle[po]["xy"]
-                    visibility = retangle[po]["vis"]
-                    yolo_box.extend(
-                        [round(x / img_width, 6), round(y / img_height, 6), visibility]
-                    )
-                else:
-                    yolo_box.extend([0, 0, 0])
+        for group in groups.values():
+            bbox_shapes = [s for s in group if s["shape_type"] == "rectangle"]
+            point_map = {
+                s["label"]: s["points"][0]
+                for s in group
+                if s["shape_type"] != "rectangle" and s["label"] in keypoint_names
+            }
 
-            class_id = classes.index(retangle["label"])
-            f.write(
-                f"{class_id} " + " ".join(map(lambda x: f"{x:.6f}", yolo_box)) + "\n"
-            )
+            for bbox_shape in bbox_shapes:
+                class_id = classes.index(bbox_shape["label"])
+                box = [
+                    bbox_shape["points"][0][0],
+                    bbox_shape["points"][0][1],
+                    bbox_shape["points"][1][0],
+                    bbox_shape["points"][1][1],
+                ]
+                yolo_box = xyxy2xywh(box, img_width, img_height)
+
+                keypoints = []
+                for name in keypoint_names:
+                    point = point_map.get(name)
+                    if point is None:
+                        keypoints.extend([0.0, 0.0, MISSING_KEYPOINT_VISIBILITY])
+                    else:
+                        keypoints.extend(
+                            [
+                                point[0] / img_width,
+                                point[1] / img_height,
+                                KEYPOINT_VISIBILITY,
+                            ]
+                        )
+
+                numbers = list(yolo_box) + keypoints
+                f.write(
+                    f"{class_id} " + " ".join(map(lambda x: f"{x:.6f}", numbers)) + "\n"
+                )
 
 
 @cli.command()
 def process_labelme_to_yolo_pose(
     image_path: Path = typer.Argument(..., help="图片目录"),
     class_path: str = typer.Argument(..., help="classes.txt"),
+    keypoint_path: Path = typer.Option(
+        None,
+        "--keypoint_path",
+        "-k",
+        help="关键点名称文件(每行一个), 不传则从数据中自动收集",
+    ),
     label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
+    """
+    将 LabelMe 标注转换为 YOLO pose 格式 (class_id bbox x1 y1 v1 x2 y2 v2 ...)
+
+    说明:
+        1. 目标框: shape_type 为 rectangle 的 shape, label 为类别名
+        2. 关键点: shape 的 label 为关键点名称 (通常 shape_type 为 point)
+        3. 框与关键点通过 group_id 匹配: 同一 group_id 的框和点构成一个实例
+        4. 组内没有关键点的框, 关键点输出全 0 (如 circle 只检测不带点)
+        5. 未设置 group_id 的 shape 合并为一个实例
+        6. keypoint_names.txt 每行一个关键点名称, 顺序即输出顺序;
+           不传 -k 时按字母序从数据中自动收集
+        7. 可见性: 已标注=2, 缺失=0
+
+    使用示例:
+        1. 【基本转换】关键点顺序显式指定
+            python labelme_to_yolo_pose.py ./images ./classes.txt -k ./keypoint_names.txt
+
+        2. 【标签目录分离】标注 json 在 labels 目录
+            python labelme_to_yolo_pose.py ./images ./classes.txt -k ./keypoint_names.txt -l ./labels
+
+        3. 【自动收集关键点】
+            python labelme_to_yolo_pose.py ./images ./classes.txt
+    """
     images = [
         f
         for f in image_path.iterdir()
@@ -277,28 +156,33 @@ def process_labelme_to_yolo_pose(
     classes = []
     with open(class_path, "r") as f:
         classes = f.read().splitlines()
-        split_idx = classes.index("")
-        classes, point_order = classes[:split_idx], classes[split_idx + 1 :]
 
-    print("主体类别: ", classes)
-    print("关键点顺序: ", point_order)
+    if keypoint_path is None:
+        keypoint_names = collect_keypoint_names(label_path, images)
+        if not keypoint_names:
+            raise typer.BadParameter(
+                "未找到关键点, 请通过 --keypoint_path 指定关键点名称文件"
+            )
+    else:
+        with open(keypoint_path, "r") as f:
+            keypoint_names = f.read().splitlines()
+    typer.echo(f"关键点顺序({len(keypoint_names)}): {', '.join(keypoint_names)}")
 
-    for img_file in track(images, description="Converting to POSE..."):
+    for img_file in track(images, description="Converting to YOLO pose..."):
         img = Image.open(img_file)
         base_name = img_file.stem
         json_file = label_path / f"{base_name}.json"
         txt_file = output_path / f"{base_name}.txt"
 
         if json_file.exists():
-            convert_labelme_to_yolo(
-                json_file, txt_file, classes, point_order, img.width, img.height
+            convert_labelme_to_yolo_pose(
+                json_file, txt_file, classes, keypoint_names, img.width, img.height
             )
         shutil.copy(img_file, output_path)
 
     shutil.copy(class_path, output_path / "classes.txt")
-    show_result = input("是否要显示结果? (y/n): ")
-    if show_result.lower() == "y":
-        show(output_path, output_path / "classes.txt", output_path)
+    if keypoint_path is not None:
+        shutil.copy(keypoint_path, output_path / "keypoint_names.txt")
 
 
 if __name__ == "__main__":

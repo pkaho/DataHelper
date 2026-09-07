@@ -9,7 +9,7 @@ from rich.progress import track
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
 
 
-cli = typer.Typer(help="LabelMe 标签转 YOLO 标签 (分割)")
+cli = typer.Typer(rich_markup_mode="rich", help="LabelMe 标签转 YOLO 标签 (分割)")
 
 
 def create_output_directory(output_dir, source_path, folder_name) -> Path:
@@ -54,6 +54,26 @@ def process_labelme_to_yolo_seg(
     label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
+    """
+    将 LabelMe 标注转换为 YOLO 分割格式 (class_id x1 y1 x2 y2 ...)
+
+    说明:
+        1. 遍历图片目录, 每张图片查找同名的 .json 标注文件
+        2. 每个标注的多边形点集按图片宽高归一化, 输出多边形坐标序列
+        3. classes.txt 每行一个类别名, 行号即 class_id, 必须与标注 label 完全一致
+        4. 没有对应 json 的图片仅拷贝, 不生成 txt
+        5. 转换结果默认输出到图片目录同级的 json2yolo_seg 文件夹
+
+    使用示例:
+        1. 【基本转换】标注 json 与图片在同一目录
+            python labelme_to_yolo_seg.py ./images ./classes.txt
+
+        2. 【标签目录分离】标注 json 在 labels 目录
+            python labelme_to_yolo_seg.py ./images ./classes.txt -l ./labels
+
+        3. 【指定输出目录】
+            python labelme_to_yolo_seg.py ./images ./classes.txt -o ./yolo_seg
+    """
     images = [
         f
         for f in image_path.iterdir()

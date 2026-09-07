@@ -18,7 +18,7 @@ DEFAULT_JSON_TEMPLATE = {
 }
 
 
-cli = typer.Typer(help="YOLO 标签转 LabelMe 标签 (目标检测)")
+cli = typer.Typer(rich_markup_mode="rich", help="YOLO 标签转 LabelMe 标签 (目标检测)")
 
 
 def create_output_directory(output_dir, source_path, folder_name) -> Path:
@@ -29,7 +29,9 @@ def create_output_directory(output_dir, source_path, folder_name) -> Path:
 
 
 def xywh2xyxy(box, img_width, img_height):
-    class_id, x, y, w, h = map(float, box.split())
+    # 兼容 5 字段 (class x y w h) 与 6 字段 (class x y w h conf)
+    parts = box.split()
+    class_id, x, y, w, h = map(float, parts[:5])
     x_min = (x - w / 2) * img_width
     y_min = (y - h / 2) * img_height
     x_max = (x + w / 2) * img_width
@@ -37,14 +39,16 @@ def xywh2xyxy(box, img_width, img_height):
     return (class_id, x_min, y_min, x_max, y_max)
 
 
-def convert_yolo_to_labelme(txt_path, json_path, classes, img_width, img_height):
+def convert_yolo_to_labelme(
+    txt_path, json_path, classes, img_width, img_height, image_name
+):
     with open(txt_path, "r") as f:
         lines = [line.strip() for line in f if line.strip()]
 
     json_data = DEFAULT_JSON_TEMPLATE.copy()
     json_data.update(
         {
-            "imagePath": txt_path.name.replace(".txt", ".jpg"),
+            "imagePath": image_name,
             "imageHeight": img_height,
             "imageWidth": img_width,
             "shapes": [],
@@ -74,6 +78,27 @@ def process_yolo_det_to_labelme(
     label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
+    """
+    将 YOLO 目标检测标签 (.txt) 转换为 LabelMe 标注 (.json)
+
+    说明:
+        1. 遍历图片目录, 每张图片查找同名的 .txt 标签文件
+        2. 标签格式: class_id x_center y_center width height (归一化坐标),
+           兼容带置信度的 6 字段格式, 多余字段忽略
+        3. classes.txt 每行一个类别名, 行号即 class_id, 用于还原类别名
+        4. 没有对应 txt 的图片仅拷贝, 不生成 json
+        5. 转换结果默认输出到图片目录同级的 yolo2json_det 文件夹
+
+    使用示例:
+        1. 【基本转换】标签与图片在同一目录
+            python yolo_det_to_labelme.py ./images ./classes.txt
+
+        2. 【标签目录分离】标签在 labels 目录
+            python yolo_det_to_labelme.py ./images ./classes.txt -l ./labels
+
+        3. 【指定输出目录】
+            python yolo_det_to_labelme.py ./images ./classes.txt -o ./labelme
+    """
     images = [
         f
         for f in image_path.iterdir()
@@ -93,7 +118,9 @@ def process_yolo_det_to_labelme(
         json_file = output_path / f"{base_name}.json"
 
         if txt_file.exists():
-            convert_yolo_to_labelme(txt_file, json_file, classes, img.width, img.height)
+            convert_yolo_to_labelme(
+                txt_file, json_file, classes, img.width, img.height, img_file.name
+            )
         shutil.copy(img_file, output_path)
 
 

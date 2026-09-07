@@ -19,7 +19,6 @@ OPERATOR_MAPPING = {
 
 cli = typer.Typer(rich_markup_mode="rich")
 
-
 def create_output_directory(output_dir, source_path, folder_name) -> Path:
     output_dir = output_dir or source_path.resolve().parent / folder_name
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -189,23 +188,35 @@ def main(
         help="是否同步处理标签文件(默认包含), 仅需处理图像时使用 --exclude-labels",
     ),
     # 规则
-    any: Optional[List[str]] = typer.Option(None, "--any", help="匹配任一指定类别"),
-    all: Optional[List[str]] = typer.Option(None, "--all", help="匹配所有指定类别"),
+    any: Optional[List[str]] = typer.Option(
+        None, "--any", help="匹配任一指定类别, 可多次传入, 格式: 类别名[:操作符:数量]"
+    ),
+    all: Optional[List[str]] = typer.Option(
+        None, "--all", help="匹配所有指定类别, 可多次传入, 格式: 类别名[:操作符:数量]"
+    ),
     exact: Optional[List[str]] = typer.Option(
-        None, "--exact", help="精确匹配类别集合和数量"
+        None, "--exact", help="类别集合和数量完全匹配, 格式: 类别名[:操作符:数量]"
     ),
     total: Optional[List[str]] = typer.Option(
-        None, "--total", help="匹配总标签数量规则"
+        None, "--total", help="匹配总标签数量, 格式: [操作符:]数量"
     ),
 ):
     """
     根据指定的标签规则查找并处理对应的图像和标签文件
 
-    匹配规则说明, 同时也是优先级顺序：
-        1. --any: 任一规则满足即匹配（OR逻辑）
-        2. --all: 所有规则都满足才匹配（AND逻辑）
-        3. --exact: 类别集合和数量完全匹配（无额外类别）
+    规则格式说明 (类别名 / 类别名:数量 / 类别名:操作符:数量):
+        1. 只写类别名: 等价于 类别名:>=:1 (至少 1 个)
+        2. 类别名:数量: 使用默认操作符 >= (至少 N 个), 如 dog:2
+        3. 类别名:操作符:数量: 自定义操作符, 如 dog:>:3
+        支持的操作符: >, >=, <, <=, =, !=
+        注意: 类别名不能包含冒号 (:)
+
+    匹配规则说明, 同时也是优先级顺序:
+        1. --any: 任一规则满足即匹配 (OR 逻辑)
+        2. --all: 所有规则都满足才匹配 (AND 逻辑)
+        3. --exact: 类别集合和数量完全匹配 (无额外类别)
         4. --total: 总标注数量满足指定条件
+        同时传入多个规则类型时, 满足任一类型即匹配
 
     使用示例:
         1. 【任一条件满足】查找包含至少2个dog标签 或 超过3个cat标签的数据
@@ -219,6 +230,9 @@ def main(
 
         4. 【总数量条件】查找所有标签的总数量大于5的数据
             python search_data_by_label.py ./data --total >:5
+
+        5. 【只移动图片】不处理标签文件, 仅移动匹配的图片
+            python search_data_by_label.py ./data --any dog:1 --exclude-labels
     """
     input_path = input_path.resolve()
     output_path = create_output_directory(output_path, input_path, "search_data")

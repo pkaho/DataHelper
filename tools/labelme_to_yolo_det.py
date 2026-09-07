@@ -16,7 +16,7 @@ def create_output_directory(output_dir, source_path, folder_name) -> Path:
     return output_dir
 
 
-cli = typer.Typer(help="LabelMe 标签转 YOLO 标签 (目标检测)")
+cli = typer.Typer(rich_markup_mode="rich", help="LabelMe 标签转 YOLO 标签 (目标检测)")
 
 
 def xyxy2xywh(box, img_width, img_height):
@@ -49,6 +49,26 @@ def process_labelme_to_yolo_det(
     label_path: Path = typer.Option(None, "--label_path", "-l", help="标签目录"),
     output_path: Path = typer.Option(None, "--output_path", "-o", help="输出目录"),
 ):
+    """
+    将 LabelMe 标注转换为 YOLO 目标检测格式 (class_id x_center y_center width height)
+
+    说明:
+        1. 遍历图片目录, 每张图片查找同名的 .json 标注文件
+        2. 每个标注取其 points 的前两点作为对角坐标, 归一化为 xywh
+        3. classes.txt 每行一个类别名, 行号即 class_id, 必须与标注 label 完全一致
+        4. 没有对应 json 的图片仅拷贝, 不生成 txt
+        5. 转换结果默认输出到图片目录同级的 json2yolo_det 文件夹
+
+    使用示例:
+        1. 【基本转换】标注 json 与图片在同一目录
+            python labelme_to_yolo_det.py ./images ./classes.txt
+
+        2. 【标签目录分离】标注 json 在 labels 目录
+            python labelme_to_yolo_det.py ./images ./classes.txt -l ./labels
+
+        3. 【指定输出目录】
+            python labelme_to_yolo_det.py ./images ./classes.txt -o ./yolo_det
+    """
     images = [
         f
         for f in image_path.iterdir()

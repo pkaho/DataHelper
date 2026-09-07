@@ -19,7 +19,7 @@ JSON_FORMAT = {
 }
 
 
-cli = typer.Typer(help="生成空标签文件，支持 txt/json 格式")
+cli = typer.Typer(rich_markup_mode="rich", help="生成空标签文件，支持 txt/json 格式")
 
 
 class LabelType(str, Enum):
@@ -34,6 +34,21 @@ def generate_empty_file(
         LabelType.txt, help="要生成的标签文件类型 [txt, json]"
     ),
 ):
+    """
+    为目录下所有图片生成同名的空标签文件 (txt 或 json)
+
+    说明:
+        1. 遍历图片目录, 为每张图片生成同名标签文件 (不覆盖已存在的)
+        2. txt 模式: 生成空文件 (用于占位)
+        3. json 模式: 生成标准 LabelMe 空标注 (含图片宽高, shapes 为空)
+
+    使用示例:
+        1. 【生成空 txt 标签】默认类型
+            python generate_empty_label_file.py ./images
+
+        2. 【生成空 json 标注】
+            python generate_empty_label_file.py ./images json
+    """
     for img_file in track(
         path.iterdir(), description="Generating empty label files..."
     ):
