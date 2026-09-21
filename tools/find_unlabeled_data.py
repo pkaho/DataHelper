@@ -14,6 +14,7 @@ cli = typer.Typer(rich_markup_mode="rich", help="查找未/空标注数据")
 class Mode(str, Enum):
     single = "single"
     nolabel = "nolabel"
+    orphan = "orphan"
     all = "all"
 
 
@@ -69,7 +70,7 @@ def process_data(
         Mode.all,
         "--mode",
         "-m",
-        help="处理模式 [single: 没有标签文件, nolabel: 空标签文件, all: 同时两种]",
+        help="处理模式 [single: 没有标签文件, nolabel: 空标签文件, orphan: 没有对应图片的标签文件, all: 同时三种]",
     ),
 ):
     """
@@ -78,10 +79,11 @@ def process_data(
     说明:
         1. single 模式: 查找没有任何标签文件 (.txt/.json) 的图片
         2. nolabel 模式: 查找标签文件为空或无效 (txt 空文件/字段不足5, json 无 shapes) 的图片
-        3. all 模式: 同时处理以上两种
-        4. 默认移动, 使用 --copy 改为复制; 输出到图片目录同级的
-           find_single / find_nolabel 文件夹
-        5. nolabel 模式下标签文件会随图片一起移动/复制
+        3. orphan 模式: 查找没有对应图片 (.jpg/.jpeg/.png 等) 的标签文件
+        4. all 模式: 同时处理以上三种
+        5. 默认移动, 使用 --copy 改为复制; 输出到图片目录同级的
+           find_single / find_nolabel / find_orphan 文件夹
+        6. nolabel 模式下标签文件会随图片一起移动/复制
 
     使用示例:
         1. 【查找无标签图片】移动到 find_single
@@ -90,7 +92,10 @@ def process_data(
         2. 【查找空标签图片】标签在 labels 目录
             python find_unlabeled_data.py ./images -l ./labels --mode nolabel
 
-        3. 【复制而非移动】同时处理两种模式, 复制到输出目录
+        3. 【查找无图片的孤儿标签】移动到 find_orphan
+            python find_unlabeled_data.py ./images -l ./labels --mode orphan
+
+        4. 【复制而非移动】同时处理三种模式, 复制到输出目录
             python find_unlabeled_data.py ./images --mode all --copy
     """
     img_dir = image_path.resolve()
@@ -110,12 +115,22 @@ def process_data(
         output_paths["nolabel"] = create_output_directory(
             output_path, img_dir, "find_nolabel"
         )
+    if mode in (Mode.orphan, Mode.all):
+        output_paths["orphan"] = create_output_directory(
+            output_path, img_dir, "find_orphan"
+        )
 
     image_files = [
         f
         for f in img_dir.iterdir()
         if f.is_file() and f.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
     ]
+    label_files = [
+        f
+        for f in label_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in (".txt", ".json")
+    ]
+    image_stems = {f.stem for f in image_files}
 
     processed = 0
     for img_file in track(image_files, description="Processing images..."):
@@ -141,13 +156,29 @@ def process_data(
                 move_or_copy(label_file, output_paths["nolabel"], copy)
                 processed += 1
 
+    # 情况3: 标签文件没有对应的图片 (孤儿标签)
+    orphan_labels = [f for f in label_files if f.stem not in image_stems]
+
+    orphan_processed = 0
+    for label_file in track(orphan_labels, description="Processing orphan labels..."):
+        if output_paths["orphan"]:
+            move_or_copy(label_file, output_paths["orphan"], copy)
+            orphan_processed += 1
+
     # 清理空输出目录
-    for out_dir in [output_paths["single"], output_paths["nolabel"]]:
+    for out_dir in [
+        output_paths.get("single"),
+        output_paths.get("nolabel"),
+        output_paths.get("orphan"),
+    ]:
         if out_dir and out_dir.exists():
             if not any(out_dir.iterdir()):
                 shutil.rmtree(out_dir)
 
-    typer.echo(f"处理完成: 共检查 {len(image_files)} 张图像, 操作 {processed} 张图片")
+    typer.echo(
+        f"处理完成: 共检查 {len(image_files)} 张图像、{len(label_files)} 个标签文件, "
+        f"操作图片 {processed} 张, 孤儿标签 {orphan_processed} 个"
+    )
 
 
 if __name__ == "__main__":
