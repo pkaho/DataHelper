@@ -12,7 +12,7 @@ cli = typer.Typer(rich_markup_mode="rich", help="视频转帧")
 
 
 def create_output_directory(output_dir, source_path, folder_name) -> Path:
-    output_dir = output_dir or source_path.resolve().parent / folder_name
+    output_dir = output_dir or Path(source_path).resolve().parent / folder_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
     return output_dir
